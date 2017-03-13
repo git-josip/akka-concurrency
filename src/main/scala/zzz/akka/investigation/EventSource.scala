@@ -2,10 +2,12 @@ package zzz.akka.investigation
 
 import akka.actor.{Actor, ActorRef}
 
-/**
-  * Created by mozzer on 3/13/17.
-  */
-trait EventSource { this: Actor =>
+trait EventSource {
+  def sendEvent[T](event: T): Unit
+  def eventSourceReceive: Actor.Receive
+}
+
+trait ProductionEventSource extends EventSource { this: Actor =>
   import EventSource._
   // We're going to use a Vector but many structures would be adequate
   var listeners = Vector.empty[ActorRef]

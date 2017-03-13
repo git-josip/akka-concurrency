@@ -9,7 +9,7 @@ import scala.concurrent.duration._
 // The Scheduler needs an execution context - we'll just use the global one
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Altimeter extends Actor with ActorLogging with EventSource {
+class Altimeter extends Actor with ActorLogging { this: EventSource =>
   import Altimeter._
 
   // The maximum ceiling of our plane in 'feet'
@@ -53,6 +53,8 @@ class Altimeter extends Actor with ActorLogging with EventSource {
 }
 
 object Altimeter {
+  def apply() = new Altimeter with ProductionEventSource
+
   // Sent to the Altimeter to inform it about a rate-of-climb changes
   case class RateChange(amount: Float)
   case class AltitudeUpdate(altitude: Double)
