@@ -9,8 +9,9 @@ import scala.concurrent.duration._
 // The Scheduler needs an execution context - we'll just use the global one
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Altimeter extends Actor with ActorLogging {
+class Altimeter extends Actor with ActorLogging with EventSource {
   import Altimeter._
+
   // The maximum ceiling of our plane in 'feet'
   val ceiling = 43000
   // The maximum rate of climb for our plane in 'feet per minute'
@@ -31,7 +32,9 @@ class Altimeter extends Actor with ActorLogging {
   // altitude
   case object Tick
 
-  def receive = {
+  def receive = eventSourceReceive orElse altimeterReceive
+
+  def altimeterReceive: Receive = {
     // Our rate of climb has changed
     case RateChange(amount) =>
       // Keep the value of rateOfClimb within [-1, 1]
@@ -42,6 +45,7 @@ class Altimeter extends Actor with ActorLogging {
       val tick = System.currentTimeMillis
       altitude = altitude + ((tick - lastTick) / 60000.0) * rateOfClimb
       lastTick = tick
+      sendEvent(AltitudeUpdate(altitude))
   }
 
   // Kill our ticker when we stop
@@ -51,4 +55,5 @@ class Altimeter extends Actor with ActorLogging {
 object Altimeter {
   // Sent to the Altimeter to inform it about a rate-of-climb changes
   case class RateChange(amount: Float)
+  case class AltitudeUpdate(altitude: Double)
 }
