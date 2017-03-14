@@ -28,7 +28,7 @@ class Plane extends Actor
     val controls = context.actorOf(Props(new IsolatedResumeSupervisor with OneForOneStrategyFactory {
       def childStarter() {
         val alt = context.actorOf(Props(newAltimeter), "Altimeter")
-        context.actorOf(Props(newAutopilot), "AutoPilot")
+        context.actorOf(Props(newAutopilot(self)), "AutoPilot")
         context.actorOf(Props(new ControlSurfaces(alt)), "ControlSurfaces")
       }
     }), "Controls")
@@ -98,6 +98,17 @@ class Plane extends Actor
 
     case AltitudeUpdate(altitude) =>
       log.info(s"Altitude is now: $altitude")
+
+    case RequestCoPilot =>
+      for {
+        copilotActorRef <-  actorForPilots(copilotName)
+        _ <- {
+          sender ! CoPilotReference(copilotActorRef)
+
+          Future.successful({})
+        }
+      } {}
+
   }
 }
 
@@ -105,4 +116,6 @@ object Plane {
   // Returns the control surface to the Actor that asks for them
   case object GiveMeControl
   case class Controls(actorRef: ActorRef)
+  case class CoPilotReference(copilot: ActorRef)
+  case object RequestCoPilot
 }

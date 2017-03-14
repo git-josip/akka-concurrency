@@ -1,6 +1,6 @@
 package zzz.akka.investigation
 
-import akka.actor.{ActorRef, Props, ActorSystem, Actor}
+import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit}
 
 import scala.concurrent.{Future, Await}
@@ -68,7 +68,7 @@ with MustMatchers {
       // Kill the Pilot
       for {
         pilotActorRef <- system.actorSelection(pilotPath).resolveOne
-        _ = pilotActorRef ! "throw"
+        _ = pilotActorRef ! PoisonPill
       } {}
       // Since the test class is the "Plane" we can
       // expect to see this request
