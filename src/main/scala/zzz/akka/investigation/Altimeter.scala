@@ -59,3 +59,7 @@ object Altimeter {
   case class RateChange(amount: Float)
   case class AltitudeUpdate(altitude: Double)
 }
+
+trait AltimeterProvider {
+  def newAltimeter: Actor = Altimeter.apply()
+}
