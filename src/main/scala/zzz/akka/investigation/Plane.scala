@@ -7,8 +7,11 @@ import scala.concurrent.{Future, Await}
 import akka.pattern.ask
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class Plane extends Actor with ActorLogging
-  with AltimeterProvider with PilotProvider with LeadFlightAttendantProvider {
+class Plane extends Actor
+  with ActorLogging
+  with AltimeterProvider
+  with PilotProvider
+  with LeadFlightAttendantProvider {
 
   import Altimeter._
   import Plane._
@@ -52,7 +55,7 @@ class Plane extends Actor with ActorLogging
           altimeterResolved <- altimeter
           _ <- {
             context.actorOf(Props(newPilot(plane, autopilotResolved, controlsResolved, altimeterResolved)), pilotName)
-            context.actorOf(Props(newCopilot(plane, autopilotResolved, controlsResolved, altimeterResolved)), copilotName)
+            context.actorOf(Props(newCopilot(plane, autopilotResolved, altimeterResolved)), copilotName)
 
             Future.successful({})
           }

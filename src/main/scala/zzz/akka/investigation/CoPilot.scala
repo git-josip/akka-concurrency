@@ -1,13 +1,14 @@
 package zzz.akka.investigation
 
-import akka.actor.{ActorRef, Actor}
+import akka.actor.{Terminated, ActorRef, Actor}
 import akka.util.Timeout
+import zzz.akka.investigation.Plane.GiveMeControl
+import scala.concurrent.Future
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class CoPilot(plane: ActorRef,
               autopilot: ActorRef,
-              var controls: ActorRef,
               altimeter: ActorRef) extends Actor {
   import Pilots._
 
@@ -20,6 +21,15 @@ class CoPilot(plane: ActorRef,
       for {
         pilotResolved <- context.actorSelection("../" + pilotName).resolveOne()
         pilot = pilotResolved
+        _ <- {
+          context.watch(pilotResolved)
+
+          Future.successful({})
+        }
       } yield {}
+
+    case Terminated(_) =>
+      // Pilot died
+      plane ! GiveMeControl
   }
 }
