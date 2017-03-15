@@ -6,19 +6,17 @@ import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 import akka.pattern.ask
 import scala.concurrent.ExecutionContext.Implicits.global
+import HeadingIndicator._
 
 class Plane extends Actor
-  with ActorLogging
-  with AltimeterProvider
-  with PilotProvider
-  with LeadFlightAttendantProvider {
+  with ActorLogging { this : AltimeterProvider with PilotProvider with LeadFlightAttendantProvider with HeadingIndicatorProvider =>
 
   import Altimeter._
   import Plane._
   import EventSource._
   import IsolatedLifeCycleSupervisor._
 
-  implicit val timeout = Timeout(5.seconds)
+  implicit val timeout = Timeout(11.seconds)
 
   val config = context.system.settings.config
   val pilotName = config.getString("zzz.akka.avionics.flightcrew.pilotName")
@@ -28,12 +26,14 @@ class Plane extends Actor
     val controls = context.actorOf(Props(new IsolatedResumeSupervisor with OneForOneStrategyFactory {
       def childStarter() {
         val alt = context.actorOf(Props(newAltimeter), "Altimeter")
+        val headingIndicator = context.actorOf(Props(newHeadingIndicator), "HeadingIndicator")
+
         context.actorOf(Props(newAutopilot(self)), "AutoPilot")
-        context.actorOf(Props(new ControlSurfaces(alt)), "ControlSurfaces")
+        context.actorOf(Props(new ControlSurfaces(self, alt, headingIndicator)), "ControlSurface")
       }
     }), "Controls")
 
-    Await.result(controls ? WaitForStart, 5.second)
+    Await.result(controls ? WaitForStart, 10.second)
   }
 
   // Helps us look up Actors within the "Controls" Supervisor
@@ -43,7 +43,7 @@ class Plane extends Actor
 
   def startPeople() {
     val plane = self
-    val controls = actorForControls("ControlSurfaces")
+    val controls = actorForControls("ControlSurface")
     val autopilot = actorForControls("AutoPilot")
     val altimeter = actorForControls("Altimeter")
 
@@ -56,8 +56,9 @@ class Plane extends Actor
           _ <- {
             context.actorOf(Props(newPilot(plane, autopilotResolved, controlsResolved, altimeterResolved)), pilotName)
             context.actorOf(Props(newCopilot(plane, autopilotResolved, altimeterResolved)), copilotName)
+            log.info("Pilots are created.")
 
-            Future.successful({})
+            Future.successful()
           }
         } yield {}
       }
@@ -89,9 +90,9 @@ class Plane extends Actor
 
   def receive = {
     case GiveMeControl =>
-      log.info("Plane giving control.")
+      log.info("Plane giving control. Sender: " + sender.path)
       for {
-        controlsResolved <- actorForControls("ControlSurfaces")
+        controlsResolved <- actorForControls("ControlSurface")
         x = sender ! controlsResolved
       } yield {}
       log.info("GiveMeControl received")
@@ -118,4 +119,7 @@ object Plane {
   case class Controls(actorRef: ActorRef)
   case class CoPilotReference(copilot: ActorRef)
   case object RequestCoPilot
+  case object LostControl
+
+  def apply() = new Plane with AltimeterProvider with PilotProvider with LeadFlightAttendantProvider with HeadingIndicatorProvider
 }
