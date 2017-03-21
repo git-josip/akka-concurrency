@@ -119,7 +119,7 @@ with MustMatchers {
       for {
         flyingBehaviourActorRef <- system.actorSelection(p.path + "/FlyingBehaviour").resolveOne()
         _ <- {
-          val target = new CourseTarget(1, 1.0f, 1000)
+          val target = CourseTarget(1, 1.0f, 1000)
           flyingBehaviourActorRef ! Fly(target)
           flyingBehaviourActorRef ! HeadingUpdate(20)
           flyingBehaviourActorRef ! AltitudeUpdate(20)
@@ -145,7 +145,7 @@ with MustMatchers {
       for {
         flyingBehaviourActorRef <- system.actorSelection(p.path + "/FlyingBehaviour").resolveOne()
         _ <- {
-          val target = new CourseTarget(1, 1.0f, 1000)
+          val target = CourseTarget(1, 1.0f, 1000)
           flyingBehaviourActorRef ! Fly(target)
           flyingBehaviourActorRef ! HeadingUpdate(20)
           flyingBehaviourActorRef ! AltitudeUpdate(20)
