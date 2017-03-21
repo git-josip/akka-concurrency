@@ -11,10 +11,6 @@ import org.scalatest.{WordSpecLike, MustMatchers}
 import akka.pattern.ask
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class NilActor extends Actor {
-  def receive = {
-    case _ => }
-}
 
 class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.parseString(CoPilotsSpec.configStr)))
   with ImplicitSender
@@ -22,6 +18,7 @@ class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.par
   with MustMatchers {
   import PilotsSpec._
   import Plane._
+  import CommonTestData._
 
   def nilActor = system.actorOf(Props[NilActor])
   // These paths are going to prove useful

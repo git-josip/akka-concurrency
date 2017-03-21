@@ -3,12 +3,16 @@ package zzz.akka.investigation
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit}
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration._
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{WordSpecLike, MustMatchers}
+import org.scalatest.{MustMatchers, WordSpecLike}
 import akka.pattern.ask
+import zzz.akka.investigation.Altimeter.AltitudeUpdate
+import zzz.akka.investigation.DrinkingBehaviour.{FeelingLikeZaphod, FeelingTipsy}
+import zzz.akka.investigation.HeadingIndicator.HeadingUpdate
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class FakePilot extends Actor {
@@ -25,6 +29,7 @@ with WordSpecLike
 with MustMatchers {
   import PilotsSpec._
   import Plane._
+  import CommonTestData._
 
   def nilActor = system.actorOf(Props[NilActor])
   // These paths are going to prove useful
@@ -78,6 +83,82 @@ with MustMatchers {
               Future.successful({})
             }
           } {}
+
+          Future.successful({})
+        }
+      } {}
+    }
+  }
+
+  import Pilots._
+  import zzz.akka.investigation.FlyingBehaviour._
+
+  trait TestFlyingProvider extends FlyingProvider {
+    override def newFlyingBehaviour(plane: ActorRef, heading: ActorRef, altimeter: ActorRef) = {
+      Props(
+        new Actor {
+          override def receive = {
+            case m: NewBankCalculator => testActor forward m
+            case n: NewElevatorCalculator => testActor forward n
+          }
+        }
+      )
+    }
+  }
+
+  def makePilot(): ActorRef = {
+    val p = system.actorOf(Props(new Pilot(nilActor, nilActor, nilActor, nilActor) with DrinkingProvider with TestFlyingProvider))
+    p ! ReadyToGo
+    p
+  }
+
+  "Pilot.becomeZaphod" should {
+    "send new zaphodCalcElevator and zaphodCalcAilerons to FlyingBehaviour" in {
+      val p = makePilot()
+
+      for {
+        flyingBehaviourActorRef <- system.actorSelection(p.path + "/FlyingBehaviour").resolveOne()
+        _ <- {
+          val target = new CourseTarget(1, 1.0f, 1000)
+          flyingBehaviourActorRef ! Fly(target)
+          flyingBehaviourActorRef ! HeadingUpdate(20)
+          flyingBehaviourActorRef ! AltitudeUpdate(20)
+          flyingBehaviourActorRef ! Controls(nilActor)
+
+          p ! FeelingLikeZaphod
+          expectMsgAllOf(
+            NewElevatorCalculator(zaphodCalcElevator),
+            NewBankCalculator(zaphodCalcAilerons)
+          )
+
+          Future.successful({})
+        }
+      } {}
+    }
+  }
+
+  "Pilot.becomeTipsy" should {
+    "send new tipsyCalcElevator and tipsyCalcAilerons to " +
+      "FlyingBehaviour" in {
+      val p = makePilot()
+
+      for {
+        flyingBehaviourActorRef <- system.actorSelection(p.path + "/FlyingBehaviour").resolveOne()
+        _ <- {
+          val target = new CourseTarget(1, 1.0f, 1000)
+          flyingBehaviourActorRef ! Fly(target)
+          flyingBehaviourActorRef ! HeadingUpdate(20)
+          flyingBehaviourActorRef ! AltitudeUpdate(20)
+          flyingBehaviourActorRef ! Controls(nilActor)
+
+          p ! FeelingTipsy
+          expectMsgAllClassOf(classOf[NewElevatorCalculator],
+            classOf[NewBankCalculator]) foreach {
+            case NewElevatorCalculator(f) =>
+              f must be(tipsyCalcElevator)
+            case NewBankCalculator(f) =>
+              f must be(tipsyCalcAilerons)
+          }
 
           Future.successful({})
         }
