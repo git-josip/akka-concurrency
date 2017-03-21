@@ -5,7 +5,6 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 import akka.pattern.ask
-import scala.concurrent.ExecutionContext.Implicits.global
 import HeadingIndicator._
 
 class Plane extends Actor
@@ -15,6 +14,7 @@ class Plane extends Actor
   import Plane._
   import EventSource._
   import IsolatedLifeCycleSupervisor._
+  import context.dispatcher
 
   implicit val timeout = Timeout(11.seconds)
 

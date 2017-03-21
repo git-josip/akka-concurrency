@@ -6,11 +6,10 @@ import akka.actor.{Props, Actor, ActorSystem, ActorLogging}
 // The duration package object extends Ints with some timing functionality
 import scala.concurrent.duration._
 
-// The Scheduler needs an execution context - we'll just use the global one
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class Altimeter extends Actor with ActorLogging { this: EventSource =>
   import Altimeter._
+  import context.dispatcher
 
   // The maximum ceiling of our plane in 'feet'
   val ceiling = 43000

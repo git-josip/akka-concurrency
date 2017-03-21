@@ -31,6 +31,7 @@ class DrinkingBehaviour(drinker: ActorRef) extends Actor {
   this: DrinkingResolution =>
 
   import DrinkingBehaviour._
+  import context.dispatcher
 
   // Stores the current blood alcohol level
   var currentLevel = 0f

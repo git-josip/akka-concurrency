@@ -4,7 +4,6 @@ import akka.actor.{ActorRef, Actor}
 import akka.util.Timeout
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 
 class Pilot(plane: ActorRef,
             autopilot: ActorRef,
@@ -19,6 +18,7 @@ class Pilot(plane: ActorRef,
   import DrinkingBehaviour._
   import FlyingBehaviour._
   import akka.actor.FSM._
+  import context.dispatcher
 
   val copilotName = context.system.settings.config.getString("zzz.akka.avionics.flightcrew.copilotName")
 

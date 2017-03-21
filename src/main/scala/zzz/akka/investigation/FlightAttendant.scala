@@ -2,7 +2,6 @@ package zzz.akka.investigation
 
 import akka.actor.{Cancellable, ActorRef, Actor}
 import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits.global
 // This trait allows us to create different Flight Attendants with different
 // levels of responsiveness.
 
@@ -13,6 +12,7 @@ trait AttendantResponsiveness {
 
 class FlightAttendant extends Actor { this: AttendantResponsiveness =>
   import FlightAttendant._
+  import context.dispatcher
 
   // An internal message we can use to signal that drink
   // delivery can take place
