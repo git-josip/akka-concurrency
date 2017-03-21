@@ -75,21 +75,23 @@ class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.par
         _ <- {
           copPilotActorRef ! PoisonPill
 
-          Future.successful({})
-        }
-      } {}
-      // Since the test class is the "Plane" we can
-      // expect to see this request
-      expectMsg(RequestCoPilot)
-      // The girl who sent it had better be Mary
-      for {
-        autoPilotActorRef <- system.actorSelection(autoPilotPath).resolveOne
-        _ <- {
-          lastSender must be (autoPilotActorRef)
+          // Since the test class is the "Plane" we can
+          // expect to see this request
+          expectMsg(RequestCoPilot)
+          // The girl who sent it had better be Mary
+          for {
+            autoPilotActorRef <- system.actorSelection(autoPilotPath).resolveOne
+            _ <- {
+              lastSender must be (autoPilotActorRef)
+
+              Future.successful({})
+            }
+          } {}
 
           Future.successful({})
         }
       } {}
+
     }
   }
 }

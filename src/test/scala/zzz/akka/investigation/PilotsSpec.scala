@@ -18,11 +18,6 @@ class FakePilot extends Actor {
   }
 }
 
-class NilActor extends Actor {
-  def receive = {
-    case _ => }
-}
-
 class PilotsSpec extends TestKit(ActorSystem("PilotsSpec",
   ConfigFactory.parseString(PilotsSpec.configStr)))
 with ImplicitSender
@@ -55,7 +50,7 @@ with MustMatchers {
     // Tell the CoPilot that it's ready to go
     for {
       copilotActorRef <- system.actorSelection(copilotPath).resolveOne
-      _ = copilotActorRef! Pilots.ReadyToGo
+      _ = copilotActorRef ! Pilots.ReadyToGo
     } {}
 
     a
@@ -69,15 +64,20 @@ with MustMatchers {
       for {
         pilotActorRef <- system.actorSelection(pilotPath).resolveOne
         _ = pilotActorRef ! PoisonPill
-      } {}
-      // Since the test class is the "Plane" we can
-      // expect to see this request
-      expectMsg(GiveMeControl)
-      // The girl who sent it had better be Mary
-      for {
-        copilotActorRef <- system.actorSelection(copilotPath).resolveOne
-        _ <- {
-          lastSender must be (copilotActorRef)
+        // Since the test class is the "Plane" we can
+        // expect to see this request
+        _ = {
+          within(6.seconds)(expectMsg(GiveMeControl))
+
+          // The girl who sent it had better be Mary
+          for {
+            copilotActorRef <- system.actorSelection(copilotPath).resolveOne
+            _ <- {
+              lastSender must be (copilotActorRef)
+
+              Future.successful({})
+            }
+          } {}
 
           Future.successful({})
         }
