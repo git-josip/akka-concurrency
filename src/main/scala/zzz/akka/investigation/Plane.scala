@@ -1,10 +1,12 @@
 package zzz.akka.investigation
 
-import akka.actor.{ActorRef, Props, ActorLogging, Actor}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
+
 import scala.concurrent.duration._
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{Await, Future}
 import akka.pattern.ask
+import akka.routing.FromConfig
 
 class Plane extends Actor
   with ActorLogging { this : AltimeterProvider with PilotProvider with LeadFlightAttendantProvider with HeadingIndicatorProvider =>
@@ -42,16 +44,22 @@ class Plane extends Actor
 
   def startPeople() {
     val plane = self
-    val controls = actorForControls("ControlSurface").resolveOne()
-    val autopilot = actorForControls("AutoPilot").resolveOne()
-    val altimeter = actorForControls("Altimeter").resolveOne()
+    // Use the Router as defined in the configuration file
+    // under the name "LeadFlightAttendant"
+    val leadAttendant = context.actorOf(Props(newFlightAttendant).withRouter(FromConfig()),
+      "LeadFlightAttendant"
+    )
 
     val people = context.actorOf(Props(new IsolatedStopSupervisor with OneForOneStrategyFactory {
       def childStarter() {
+        context.actorOf(Props(PassengerSupervisor(leadAttendant)),
+          "Passengers"
+        )
+
         for {
-          controlsResolved <- controls
-          autopilotResolved <- autopilot
-          altimeterResolved <- altimeter
+          controlsResolved <- actorForControls("ControlSurface").resolveOne()
+          autopilotResolved <- actorForControls("AutoPilot").resolveOne()
+          altimeterResolved <- actorForControls("Altimeter").resolveOne()
           _ <- {
             context.actorOf(Props(newPilot(plane, autopilotResolved, controlsResolved, altimeterResolved)), pilotName)
             context.actorOf(Props(newCopilot(plane, autopilotResolved, altimeterResolved)), copilotName)
@@ -63,8 +71,7 @@ class Plane extends Actor
       }
     }), "Pilots")
 
-    // Use the default strategy here, which restarts indefinitely
-    context.actorOf(Props(newFlightAttendant), config.getString("zzz.akka.avionics.flightcrew.leadAttendantName"))
+
     Await.result(people ? WaitForStart, 1.second)
   }
 

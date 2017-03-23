@@ -5,6 +5,12 @@ import scala.concurrent.duration._
 // This trait allows us to create different Flight Attendants with different
 // levels of responsiveness.
 
+trait FlightAttendantProvider {
+  def newFlightAttendant(): Actor = new FlightAttendant() with AttendantResponsiveness {
+    val maxResponseTimeMS: Int = 300000
+  }
+}
+
 trait AttendantResponsiveness {
   val maxResponseTimeMS: Int
   def responseDuration = scala.util.Random.nextInt(maxResponseTimeMS).millis
