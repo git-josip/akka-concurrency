@@ -35,7 +35,7 @@ with MustMatchers {
   // These paths are going to prove useful
   val pilotPath = s"/user/TestPilots/$pilotName"
   val copilotPath = s"/user/TestPilots/$copilotName"
-  implicit val askTimeout = Timeout(4.seconds)
+  implicit val askTimeout = Timeout(5.seconds)
 
   // Helper function to construct the hierarchy we need
   // and ensure that the children are good to go by the
@@ -51,12 +51,9 @@ with MustMatchers {
       }
     }), "TestPilots")
     // Wait for the mailboxes to be up and running for the children
-    Await.result(a ? IsolatedLifeCycleSupervisor.WaitForStart, 3.seconds)
+    Await.result(a ? IsolatedLifeCycleSupervisor.WaitForStart, 5.seconds)
     // Tell the CoPilot that it's ready to go
-    for {
-      copilotActorRef <- system.actorSelection(copilotPath).resolveOne
-      _ = copilotActorRef ! Pilots.ReadyToGo
-    } {}
+    system.actorSelection(copilotPath) ! Pilots.ReadyToGo
 
     a
   }

@@ -20,7 +20,6 @@ class CoPilot(plane: ActorRef,
       implicit val timeout = Timeout(5.second)
       for {
         pilotResolved <- context.actorSelection("../" + pilotName).resolveOne()
-        pilot = pilotResolved
         _ <- {
           context.watch(pilotResolved)
 

@@ -31,6 +31,15 @@ trait DrinkRequestProbability {
   }
 }
 
+// The idea behind the PassengerProvider is old news at this
+// point. We can use it in other classes to give us the
+// ability to slide in different Actor types to ease
+// testing.
+trait PassengerProvider {
+  def newPassenger(callButton: ActorRef): Actor =
+    new Passenger(callButton) with DrinkRequestProbability
+}
+
 class Passenger(callButton: ActorRef) extends Actor
   with ActorLogging {
   this: DrinkRequestProbability =>

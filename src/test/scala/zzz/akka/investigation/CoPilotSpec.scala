@@ -52,13 +52,9 @@ class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.par
     // Wait for the mailboxes to be up and running for the children
     Await.result(b ? IsolatedLifeCycleSupervisor.WaitForStart, 3.seconds)
 
-    // Tell the CoPilot that it's ready to go
-    for {
-      copilotActorRef <- system.actorSelection(copilotPath).resolveOne
-      autoPilotActorRef <- system.actorSelection(autoPilotPath).resolveOne
-      _ = copilotActorRef ! Pilots.ReadyToGo
-      _ = autoPilotActorRef ! Pilots.ReadyToGo
-    } {}
+    // Tell the CoPilot and AutoPilot that it's ready to go
+    system.actorSelection(copilotPath) ! Pilots.ReadyToGo
+    system.actorSelection(autoPilotPath) ! Pilots.ReadyToGo
   }
 
   // The Test code

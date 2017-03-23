@@ -5,7 +5,6 @@ import akka.util.Timeout
 import scala.concurrent.duration._
 import scala.concurrent.{Future, Await}
 import akka.pattern.ask
-import HeadingIndicator._
 
 class Plane extends Actor
   with ActorLogging { this : AltimeterProvider with PilotProvider with LeadFlightAttendantProvider with HeadingIndicatorProvider =>
@@ -37,15 +36,15 @@ class Plane extends Actor
   }
 
   // Helps us look up Actors within the "Controls" Supervisor
-  def actorForControls(name: String): Future[ActorRef] = context.actorSelection("Controls/" + name).resolveOne
+  def actorForControls(name: String) = context.actorSelection("Controls/" + name)
   // Helps us look up Actors within the "Pilots" Supervisor
-  def actorForPilots(name: String): Future[ActorRef] = context.actorSelection("Pilots/" + name).resolveOne
+  def actorForPilots(name: String) = context.actorSelection("Pilots/" + name)
 
   def startPeople() {
     val plane = self
-    val controls = actorForControls("ControlSurface")
-    val autopilot = actorForControls("AutoPilot")
-    val altimeter = actorForControls("Altimeter")
+    val controls = actorForControls("ControlSurface").resolveOne()
+    val autopilot = actorForControls("AutoPilot").resolveOne()
+    val altimeter = actorForControls("Altimeter").resolveOne()
 
     val people = context.actorOf(Props(new IsolatedStopSupervisor with OneForOneStrategyFactory {
       def childStarter() {
@@ -74,26 +73,19 @@ class Plane extends Actor
     startControls()
     startPeople()
     // Bootstrap the system
-    for {
-      altimeterActorRef <- actorForControls("Altimeter")
-      pilotActorRef <- actorForPilots(pilotName)
-      copilotActorRef <-  actorForPilots(copilotName)
-      _ <- {
-        altimeterActorRef ! RegisterListener(self)
-        pilotActorRef ! Pilots.ReadyToGo
-        copilotActorRef ! Pilots.ReadyToGo
 
-        Future.successful({})
-      }
-    } yield {}
+    actorForControls("Altimeter") ! RegisterListener(self)
+    actorForPilots(pilotName) ! Pilots.ReadyToGo
+    actorForPilots(copilotName) ! Pilots.ReadyToGo
   }
 
   def receive = {
     case GiveMeControl =>
       log.info("Plane giving control. Sender: " + sender.path)
+      val currentSender = sender
       for {
-        controlsResolved <- actorForControls("ControlSurface")
-        x = sender ! controlsResolved
+        controlsResolved <- actorForControls("ControlSurface").resolveOne()
+        _ = currentSender ! controlsResolved
       } yield {}
       log.info("GiveMeControl received")
 
@@ -101,10 +93,11 @@ class Plane extends Actor
       log.info(s"Altitude is now: $altitude")
 
     case RequestCoPilot =>
+      val currentSender = sender
       for {
-        copilotActorRef <-  actorForPilots(copilotName)
+        copilotActorRef <-  actorForPilots(copilotName).resolveOne()
         _ <- {
-          sender ! CoPilotReference(copilotActorRef)
+          currentSender ! CoPilotReference(copilotActorRef)
 
           Future.successful({})
         }
