@@ -53,7 +53,7 @@ class PassengerSupervisorSpec extends TestKit(ActorSystem("PassengerSupervisorSp
       val a = system.actorOf(Props(new PassengerSupervisor(testActor) with TestPassengerProvider))
       // Grab the BroadcastRouter
       a ! GetPassengerBroadcaster
-      val broadcaster = within(80.seconds)( expectMsgPF() {
+      val broadcaster = expectMsgPF() {
         case PassengerBroadcaster(b) =>
           // Exercise the BroadcastRouter
           b ! "Hithere"
@@ -67,7 +67,7 @@ class PassengerSupervisorSpec extends TestKit(ActorSystem("PassengerSupervisorSp
           expectNoMsg(100.milliseconds)
           // Return the BroadcastRouter
           b
-      })
+      }
 //       Ensure that the cache works
       a ! GetPassengerBroadcaster
 //      expectMsg(PassengerBroadcaster(`broadcaster`))
