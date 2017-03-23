@@ -1,4 +1,4 @@
-# akka-concurrency
+# Akka Concurrency
 Book: https://www.artima.com/shop/akka_concurrency
 
 Akka Concurrency book - code examples
