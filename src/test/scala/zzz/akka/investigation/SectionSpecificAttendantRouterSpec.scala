@@ -27,7 +27,7 @@ class SectionSpecificAttendantRouterSpec extends TestKit(ActorSystem("SectionSpe
   def newRouter(): RouterConfig = new SectionSpecificAttendantRouter(5) {
     override def newFlightAttendant() = new TestRoutee
   }
-  
+
   "SectionSpecificAttendantRouter" should {
     "route consistently" in {
       val router = system.actorOf(Props[TestRoutee].withRouter(newRouter()))
