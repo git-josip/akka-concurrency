@@ -1,4 +1,4 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.SupervisorStrategy.{Escalate, Resume, Stop}
 import akka.actor.{Actor, ActorInitializationException, ActorKilledException, ActorRef, OneForOneStrategy, Props}

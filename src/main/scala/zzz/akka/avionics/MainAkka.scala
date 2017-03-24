@@ -1,4 +1,4 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import java.util.concurrent.Executors
 import scala.concurrent.{Await, Future, ExecutionContext}

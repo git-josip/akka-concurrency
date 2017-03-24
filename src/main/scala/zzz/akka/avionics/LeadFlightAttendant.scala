@@ -1,4 +1,4 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.{Actor, ActorRef, Props}
 // The Lead is going to construct its own subordinates.

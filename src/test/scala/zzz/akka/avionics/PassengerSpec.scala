@@ -1,9 +1,9 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
 import org.scalatest.{MustMatchers, WordSpecLike}
-import zzz.akka.investigation.Passenger.FastenSeatbelts
+import zzz.akka.avionics.Passenger.FastenSeatbelts
 
 import scala.concurrent.duration._
 

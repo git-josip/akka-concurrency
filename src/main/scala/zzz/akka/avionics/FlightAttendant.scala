@@ -1,4 +1,4 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.{Cancellable, ActorRef, Actor}
 import scala.concurrent.duration._

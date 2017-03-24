@@ -1,4 +1,4 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 // Imports to help us create Actors, plus logging
 import akka.actor.{Props, Actor, ActorSystem, ActorLogging}

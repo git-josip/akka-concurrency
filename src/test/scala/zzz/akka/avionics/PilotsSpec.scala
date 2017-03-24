@@ -1,4 +1,4 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit}
@@ -9,9 +9,9 @@ import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{MustMatchers, WordSpecLike}
 import akka.pattern.ask
-import zzz.akka.investigation.Altimeter.AltitudeUpdate
-import zzz.akka.investigation.DrinkingBehaviour.{FeelingLikeZaphod, FeelingTipsy}
-import zzz.akka.investigation.HeadingIndicator.HeadingUpdate
+import zzz.akka.avionics.Altimeter.AltitudeUpdate
+import zzz.akka.avionics.DrinkingBehaviour.{FeelingLikeZaphod, FeelingTipsy}
+import zzz.akka.avionics.HeadingIndicator.HeadingUpdate
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -88,7 +88,7 @@ with MustMatchers {
   }
 
   import Pilots._
-  import zzz.akka.investigation.FlyingBehaviour._
+  import zzz.akka.avionics.FlyingBehaviour._
 
   trait TestFlyingProvider extends FlyingProvider {
     override def newFlyingBehaviour(plane: ActorRef, heading: ActorRef, altimeter: ActorRef) = {

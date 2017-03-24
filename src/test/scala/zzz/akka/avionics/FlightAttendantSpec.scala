@@ -1,4 +1,4 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.{Props, ActorSystem}
 import akka.testkit.{TestActorRef, ImplicitSender, TestKit}

@@ -1,9 +1,9 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.{Actor, ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
-import zzz.akka.investigation.SectionSpecificAttendantRoutingLogic.CustomRouting
+import zzz.akka.avionics.SectionSpecificAttendantRoutingLogic.CustomRouting
 
 import scala.collection.immutable.IndexedSeq
 

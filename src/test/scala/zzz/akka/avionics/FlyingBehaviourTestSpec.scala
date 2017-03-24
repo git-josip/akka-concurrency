@@ -1,13 +1,13 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
 import CommonTestData._
 import org.scalatest.{MustMatchers, WordSpecLike}
-import zzz.akka.investigation.Altimeter.AltitudeUpdate
-import zzz.akka.investigation.FlyingBehaviour._
-import zzz.akka.investigation.HeadingIndicator.HeadingUpdate
-import zzz.akka.investigation.Plane.Controls
+import zzz.akka.avionics.Altimeter.AltitudeUpdate
+import zzz.akka.avionics.FlyingBehaviour._
+import zzz.akka.avionics.HeadingIndicator.HeadingUpdate
+import zzz.akka.avionics.Plane.Controls
 
 class FlyingBehaviourTestSpec extends TestKit(ActorSystem("FlyingBehaviourTestSpec"))
   with ImplicitSender

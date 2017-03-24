@@ -1,8 +1,8 @@
-package zzz.akka.investigation
+package zzz.akka.avionics
 
 import akka.actor.{Terminated, ActorRef, Actor}
 import akka.util.Timeout
-import zzz.akka.investigation.Plane.GiveMeControl
+import zzz.akka.avionics.Plane.GiveMeControl
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
