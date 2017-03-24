@@ -1,15 +1,24 @@
 package zzz.akka.investigation
 
-import akka.actor.{Actor, ActorSystem, Props}
-import akka.routing.RouterConfig
-import akka.testkit.{ImplicitSender, TestKit}
+import akka.actor.{Actor, ActorRef, ActorSystem, Props}
+import akka.testkit.{ImplicitSender, TestKit, TestProbe}
 import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
+import zzz.akka.investigation.SectionSpecificAttendantRoutingLogic.CustomRouting
 
-// This will be the Routee, which will be put in place // instead of the FlightAttendant
-class TestRoutee extends Actor {
-  def receive = {
-    case m => sender ! m
+import scala.collection.immutable.IndexedSeq
+
+class RouterRelay extends Actor {
+  import RouterRelay._
+
+    def receive = {
+    case RelayTo(masterRouter, msg) =>
+      val Passenger.SeatAssignment(_, row, _) = self.path.name.replaceAllLiterally("_", " ")
+      masterRouter ! msg + s" I am passenger on row: $row"
   }
+}
+
+object RouterRelay {
+  case class RelayTo(masterRouter: ActorRef, msg: Any)
 }
 
 class SectionSpecificAttendantRouterSpec extends TestKit(ActorSystem("SectionSpecificAttendantRouterSpec"))
@@ -18,29 +27,29 @@ class SectionSpecificAttendantRouterSpec extends TestKit(ActorSystem("SectionSpe
   with BeforeAndAfterAll
   with MustMatchers {
 
+  import RouterRelay._
+
   override def afterAll() { system.terminate() }
 
-  // A simple method to create a new
-  // SectionSpecificAttendantRouter with the overridden
-  // FlightAttendantProvider that instantiates a TestRoutee
-
-  def newRouter(): RouterConfig = new SectionSpecificAttendantRouter(5) {
-    override def newFlightAttendant() = new TestRoutee
-  }
+  def relayWithRow(row: Int) = system.actorOf(Props[RouterRelay], s"Someone-$row-C")
 
   "SectionSpecificAttendantRouter" should {
     "route consistently" in {
-      val router = system.actorOf(Props[TestRoutee].withRouter(newRouter()))
+      val attentand1 = TestProbe()
+      val attentand2 = TestProbe()
+      val attentand3 = TestProbe()
 
-      (1 to 5) foreach { n =>
-        router ! "Test message"
-      }
+      val passengers: IndexedSeq[ActorRef] = (1 to 25).map(i => relayWithRow(i))
+      val masterRouter = system.actorOf(Props(new SectionSpecificAttendantMasterRouter(List(attentand1.ref, attentand2.ref, attentand3.ref))))
 
-      expectMsg("Test message")
-      expectMsg("Test message")
-      expectMsg("Test message")
-      expectMsg("Test message")
-      expectMsg("Test message")
+      passengers(6) ! RelayTo(masterRouter, "Test message.")
+      passengers(13) ! RelayTo(masterRouter, "Test message.")
+      passengers(21) ! RelayTo(masterRouter, "Test message.")
+
+      attentand1.expectMsg(CustomRouting("Test message." + s" I am passenger on row: 7", passengers(6)))
+      attentand2.expectMsg(CustomRouting("Test message." + s" I am passenger on row: 14", passengers(13)))
+      attentand3.expectMsg(CustomRouting("Test message." + s" I am passenger on row: 22", passengers(21)))
+
     }
   }
 }
