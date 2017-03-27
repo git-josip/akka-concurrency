@@ -16,7 +16,9 @@ class EventSourceSpec extends TestKit(ActorSystem("EventSourceSpec"))
   with BeforeAndAfterAll {
 
   import EventSource._
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
 
   "EventSource" should {
     "allow us to register a listener" in {

@@ -29,7 +29,9 @@ class CoPilotSpec extends TestKit(ActorSystem("CoPilotSpec", ConfigFactory.parse
 
   implicit val askTimeout = Timeout(2.seconds)
 
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
 
   // Helper function to construct the hierarchy we need
   // and ensure that the children are good to go by the
@@ -67,7 +69,7 @@ class CoPilotSpec extends TestKit(ActorSystem("CoPilotSpec", ConfigFactory.parse
       // Kill the Pilot
       system.actorSelection(copilotPath) ! PoisonPill
 
-      expectMsg(RequestCoPilot)
+      expectMsgAnyOf(RequestCoPilot)
 
       system.actorSelection(lastSender.path) must be (system.actorSelection(autoPilotPath))
     }

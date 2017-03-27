@@ -29,7 +29,9 @@ class SectionSpecificAttendantRouterSpec extends TestKit(ActorSystem("SectionSpe
 
   import RouterRelay._
 
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
 
   def relayWithRow(row: Int) = system.actorOf(Props[RouterRelay], s"Someone-$row-C")
 

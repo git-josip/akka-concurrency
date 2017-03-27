@@ -44,7 +44,7 @@ class PassengerSupervisorSpec extends TestKit(ActorSystem("PassengerSupervisorSp
   import PassengerSupervisor._
   // Clean up the system when all the tests are done
   override def afterAll() {
-    system.terminate()
+    TestKit.shutdownActorSystem(system)
   }
 
   "PassengerSupervisor" should {

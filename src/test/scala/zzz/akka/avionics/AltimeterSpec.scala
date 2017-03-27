@@ -24,7 +24,9 @@ class AltimeterSpec extends TestKit(ActorSystem("AltimeterSpec"))
   with BeforeAndAfterAll {
 
   import Altimeter._
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
   // The slicedAltimeter constructs our Altimeter with the EventSourceSpy
   def slicedAltimeter = new Altimeter with EventSourceSpy
 

@@ -18,7 +18,9 @@ class FlightAttendantSpec extends TestKit(ActorSystem("FlightAttendantSpec", Con
   with BeforeAndAfterAll {
   import FlightAttendant._
 
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
 
   "FlightAttendant" should {
     "get a drink when asked" in {

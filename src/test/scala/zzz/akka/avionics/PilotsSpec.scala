@@ -12,6 +12,7 @@ import akka.pattern.ask
 import zzz.akka.avionics.Altimeter.AltitudeUpdate
 import zzz.akka.avionics.DrinkingBehaviour.{FeelingLikeZaphod, FeelingTipsy}
 import zzz.akka.avionics.HeadingIndicator.HeadingUpdate
+import zzz.akka.avionics.Pilots.ReadyToGo
 
 class PilotsSpec extends TestKit(ActorSystem("PilotsSpec",
   ConfigFactory.parseString(PilotsSpec.configStr)))
@@ -28,9 +29,11 @@ with PilotProvider {
   // These paths are going to prove useful
   val pilotPath = s"/user/TestPilots/$pilotName"
   val copilotPath = s"/user/TestPilots/$copilotName"
-  implicit val askTimeout = Timeout(2.seconds)
+  implicit val askTimeout = Timeout(3.seconds)
 
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
 
   // Helper function to construct the hierarchy we need
   // and ensure that the children are good to go by the
@@ -42,16 +45,16 @@ with PilotProvider {
       with OneForOneStrategyFactory {
       def childStarter() {
         val coPilot = context.actorOf(Props(new CoPilot(testActor, nilActor, nilActor)), copilotName)
-        context.actorOf(Props(newPilot(testActor, coPilot, nilActor, nilActor)), pilotName)
+        val pilot = context.actorOf(Props(newPilot(testActor, coPilot, nilActor, nilActor)), pilotName)
+
+        // Tell the CoPilot and AutoPilot that it's ready to go
+        coPilot ! ReadyToGo
+        pilot ! ReadyToGo
       }
     }), "TestPilots")
 
-    // Tell the CoPilot that it's ready to go
-    system.actorSelection(copilotPath) ! Pilots.ReadyToGo
-
     // Wait for the mailboxes to be up and running for the children
-    Await.result(a ? IsolatedLifeCycleSupervisor.WaitForStart, 1.second)
-
+    Await.result(a ? IsolatedLifeCycleSupervisor.WaitForStart, 3.second)
     a
   }
 
@@ -63,10 +66,9 @@ with PilotProvider {
       // Kill the Pilot
       system.actorSelection(pilotPath) ! PoisonPill
 
-      expectMsg(GiveMeControl)
+      expectMsgAnyOf(GiveMeControl)
 
-      val lastSenderX = lastSender.path
-      system.actorSelection(lastSenderX) must be (system.actorSelection(copilotPath))
+      system.actorSelection(lastSender.path) must be (system.actorSelection(copilotPath))
     }
   }
 
