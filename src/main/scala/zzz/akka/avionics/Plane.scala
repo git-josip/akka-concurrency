@@ -2,7 +2,7 @@ package zzz.akka.avionics
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.util.Timeout
-
+import akka.pattern.pipe
 import scala.concurrent.duration._
 import scala.concurrent.{Await, Future}
 import akka.pattern.ask
@@ -90,26 +90,16 @@ class Plane extends Actor
     case GiveMeControl =>
       log.info("Plane giving control. Sender: " + sender.path)
       val currentSender = sender
-      for {
-        controlsResolved <- actorForControls("ControlSurface").resolveOne()
-        _ = currentSender ! controlsResolved
-      } yield {}
-      log.info("GiveMeControl received")
+      actorForControls("ControlSurface").resolveOne() pipeTo currentSender
 
     case AltitudeUpdate(altitude) =>
       log.info(s"Altitude is now: $altitude")
 
     case RequestCoPilot =>
       val currentSender = sender
-      for {
-        copilotActorRef <-  actorForPilots(copilotName).resolveOne()
-        _ <- {
-          currentSender ! CoPilotReference(copilotActorRef)
-
-          Future.successful({})
-        }
-      } {}
-
+      actorForPilots(copilotName).resolveOne()
+        .map(copilotActorRef => CoPilotReference(copilotActorRef))
+        .pipeTo(currentSender)
   }
 }
 

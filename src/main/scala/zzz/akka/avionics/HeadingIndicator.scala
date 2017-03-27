@@ -3,11 +3,17 @@ package zzz.akka.avionics
 import akka.actor.{ActorLogging, Actor}
 import scala.concurrent.duration._
 
-trait HeadingIndicator extends Actor with ActorLogging {
+trait HeadingIndicator extends Actor
+  with ActorLogging
+  with StatusReporter {
   this: EventSource =>
 
   import HeadingIndicator._
+  import StatusReporter._
   import context._
+
+  // The HeadingIndicator is always happy
+  def currentStatus = StatusOK
 
   // Internal message we use to recalculate our heading
   case object Tick
@@ -42,7 +48,12 @@ trait HeadingIndicator extends Actor with ActorLogging {
 
   // Remember that we're mixing in the EventSource and thus have to
   // compose our receive partial function accordingly
-  def receive = eventSourceReceive orElse headingIndicatorReceive
+  // Compose our receive method from the EventSource,
+  // the StatusReporter and our own functionality
+  def receive = statusReceive orElse
+    eventSourceReceive orElse
+    headingIndicatorReceive
+
   // Don't forget to cancel our timer when we shut down
   override def postStop(): Unit = ticker.cancel
 }
