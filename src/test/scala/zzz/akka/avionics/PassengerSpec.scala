@@ -2,7 +2,7 @@ package zzz.akka.avionics
 
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestKit}
-import org.scalatest.{MustMatchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 import zzz.akka.avionics.Passenger.FastenSeatbelts
 
 import scala.concurrent.duration._
@@ -16,7 +16,8 @@ trait TestDrinkRequestProbability extends DrinkRequestProbability {
 class PassengerSpec extends TestKit(ActorSystem())
   with ImplicitSender
   with WordSpecLike
-  with MustMatchers{
+  with MustMatchers
+  with BeforeAndAfterAll {
   import akka.event.Logging.Info
   import akka.testkit.TestProbe
   var seatNumber = 9
@@ -24,6 +25,8 @@ class PassengerSpec extends TestKit(ActorSystem())
     seatNumber += 1
     system.actorOf(Props(new Passenger(testActor) with TestDrinkRequestProbability), s"Pat_Metheny-$seatNumber-B")
   }
+
+  override def afterAll() { system.terminate() }
 
   "Passengers" should {
     "fasten seatbelts when asked" in {

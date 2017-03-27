@@ -1,21 +1,22 @@
 package zzz.akka.avionics
 
-import akka.actor._
+import akka.actor.{Props, _}
 import akka.testkit.{ImplicitSender, TestKit}
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{WordSpecLike, MustMatchers}
+import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 import akka.pattern.ask
-import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.parseString(CoPilotsSpec.configStr)))
+class CoPilotSpec extends TestKit(ActorSystem("CoPilotSpec", ConfigFactory.parseString(CoPilotSpec.configStr)))
   with ImplicitSender
   with WordSpecLike
-  with MustMatchers {
+  with MustMatchers
+  with BeforeAndAfterAll
+  with PilotProvider {
   import PilotsSpec._
   import Plane._
   import CommonTestData._
@@ -26,7 +27,9 @@ class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.par
   val copilotPath = s"/user/TestPilots/$copilotName"
   val autoPilotPath = s"/user/Controls/AutoPilot"
 
-  implicit val askTimeout = Timeout(4.seconds)
+  implicit val askTimeout = Timeout(2.seconds)
+
+  override def afterAll() { system.terminate() }
 
   // Helper function to construct the hierarchy we need
   // and ensure that the children are good to go by the
@@ -37,24 +40,23 @@ class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.par
     val a = system.actorOf(Props(new IsolatedStopSupervisor
       with OneForOneStrategyFactory {
       def childStarter() {
-        context.actorOf(Props[NilActor], pilotName)
-        context.actorOf(Props[NilActor], copilotName)
+        val coPilot = context.actorOf(Props(new CoPilot(testActor, nilActor, nilActor)), copilotName)
+        context.actorOf(Props(newPilot(testActor, coPilot, nilActor, nilActor)), pilotName)
       }
     }), "TestPilots")
-    // Wait for the mailboxes to be up and running for the children
-    Await.result(a ? IsolatedLifeCycleSupervisor.WaitForStart, 3.seconds)
 
     val b = system.actorOf(Props(new IsolatedStopSupervisor with OneForOneStrategyFactory {
       def childStarter() {
         context.actorOf(Props(new AutoPilot(testActor)), "AutoPilot")
       }
     }), "Controls")
-    // Wait for the mailboxes to be up and running for the children
-    Await.result(b ? IsolatedLifeCycleSupervisor.WaitForStart, 3.seconds)
 
     // Tell the CoPilot and AutoPilot that it's ready to go
     system.actorSelection(copilotPath) ! Pilots.ReadyToGo
     system.actorSelection(autoPilotPath) ! Pilots.ReadyToGo
+
+    // Wait for the mailboxes to be up and running for the children
+    Await.result(b ? IsolatedLifeCycleSupervisor.WaitForStart, 2.seconds)
   }
 
   // The Test code
@@ -63,33 +65,16 @@ class CoPilotsSpec extends TestKit(ActorSystem("CoPilotsSpec", ConfigFactory.par
      pilotsReadyToGo()
 
       // Kill the Pilot
-      for {
-        copPilotActorRef <- system.actorSelection(copilotPath).resolveOne
-        _ <- {
-          copPilotActorRef ! PoisonPill
+      system.actorSelection(copilotPath) ! PoisonPill
 
-          // Since the test class is the "Plane" we can
-          // expect to see this request
-          expectMsg(RequestCoPilot)
-          // The girl who sent it had better be Mary
-          for {
-            autoPilotActorRef <- system.actorSelection(autoPilotPath).resolveOne
-            _ <- {
-              lastSender must be (autoPilotActorRef)
+      expectMsg(RequestCoPilot)
 
-              Future.successful({})
-            }
-          } {}
-
-          Future.successful({})
-        }
-      } {}
-
+      system.actorSelection(lastSender.path) must be (system.actorSelection(autoPilotPath))
     }
   }
 }
 
-object CoPilotsSpec {
+object CoPilotSpec {
   val copilotName = "Mary"
   val pilotName = "Mark"
   val configStr = s"""

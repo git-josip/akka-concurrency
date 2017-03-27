@@ -1,9 +1,6 @@
 package zzz.akka.avionics
 
-import akka.actor.{ActorRef, Actor}
-import akka.util.Timeout
-import scala.concurrent.Future
-import scala.concurrent.duration._
+import akka.actor.{Actor, ActorRef, ActorSelection}
 
 class Pilot(plane: ActorRef,
             autopilot: ActorRef,
@@ -18,7 +15,6 @@ class Pilot(plane: ActorRef,
   import DrinkingBehaviour._
   import FlyingBehaviour._
   import akka.actor.FSM._
-  import context.dispatcher
 
   val copilotName = context.system.settings.config.getString("zzz.akka.avionics.flightcrew.copilotName")
 
@@ -27,22 +23,16 @@ class Pilot(plane: ActorRef,
   // in having it around for long
   def bootstrap: Receive = {
     case ReadyToGo =>
-      implicit val timeout = Timeout(5.seconds)
-      for {
-        copilotResolved <- context.actorSelection("../" + copilotName).resolveOne()
-        flyerResolved <- context.actorSelection("FlyingBehaviour").resolveOne()
-        _ <- {
-          flyerResolved ! SubscribeTransitionCallBack(self)
-          flyerResolved ! Fly(CourseTarget(20000, 250, System.currentTimeMillis + 30000))
-          become(sober(copilotResolved, flyerResolved))
+      val coPilot = context.actorSelection("../" + copilotName)
+      val flyer = context.actorSelection("FlyingBehaviour")
 
-          Future.successful({})
-        }
-      } yield {}
+      flyer ! SubscribeTransitionCallBack(self)
+      flyer ! Fly(CourseTarget(20000, 250, System.currentTimeMillis + 30000))
+      become(sober(coPilot, flyer))
   }
 
   // The 'sober' behaviour
-  def sober(copilot: ActorRef, flyer: ActorRef): Receive = {
+  def sober(copilot: ActorSelection, flyer: ActorSelection): Receive = {
     case FeelingSober =>
     // We're already sober
     case FeelingTipsy =>
@@ -52,7 +42,7 @@ class Pilot(plane: ActorRef,
   }
 
   // The 'tipsy' behaviour
-  def tipsy(copilot: ActorRef, flyer: ActorRef): Receive = {
+  def tipsy(copilot: ActorSelection, flyer: ActorSelection): Receive = {
     case FeelingSober =>
       becomeSober(copilot, flyer)
     case FeelingTipsy =>
@@ -62,7 +52,7 @@ class Pilot(plane: ActorRef,
   }
 
   // The 'zaphod' behaviour
-  def zaphod(copilot: ActorRef, flyer: ActorRef): Receive = {
+  def zaphod(copilot: ActorSelection, flyer: ActorSelection): Receive = {
     case FeelingSober =>
       becomeSober(copilot, flyer)
     case FeelingTipsy =>
@@ -78,21 +68,21 @@ class Pilot(plane: ActorRef,
 
   // Updates the FlyingBehaviour with sober calculations and then
   // becomes the sober behaviour
-  def becomeSober(copilot: ActorRef, flyer: ActorRef) = {
+  def becomeSober(copilot: ActorSelection, flyer: ActorSelection) = {
     flyer ! NewElevatorCalculator(calcElevator)
     flyer ! NewBankCalculator(calcAilerons)
     become(sober(copilot, flyer))
   }
   // Updates the FlyingBehaviour with tipsy calculations and then
   // becomes the tipsy behaviour
-  def becomeTipsy(copilot: ActorRef, flyer: ActorRef) = {
+  def becomeTipsy(copilot: ActorSelection, flyer: ActorSelection) = {
     flyer ! NewElevatorCalculator(tipsyCalcElevator)
     flyer ! NewBankCalculator(tipsyCalcAilerons)
     become(tipsy(copilot, flyer))
   }
   // Updates the FlyingBehaviour with zaphod calculations and then
   // becomes the zaphod behaviour
-  def becomeZaphod(copilot: ActorRef, flyer: ActorRef) = {
+  def becomeZaphod(copilot: ActorSelection, flyer: ActorSelection) = {
     flyer ! NewElevatorCalculator(zaphodCalcElevator)
     flyer ! NewBankCalculator(zaphodCalcAilerons)
     become(zaphod(copilot, flyer))

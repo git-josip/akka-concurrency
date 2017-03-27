@@ -3,30 +3,23 @@ package zzz.akka.avionics
 import akka.actor._
 import akka.testkit.{ImplicitSender, TestKit}
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import akka.util.Timeout
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{MustMatchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 import akka.pattern.ask
 import zzz.akka.avionics.Altimeter.AltitudeUpdate
 import zzz.akka.avionics.DrinkingBehaviour.{FeelingLikeZaphod, FeelingTipsy}
 import zzz.akka.avionics.HeadingIndicator.HeadingUpdate
 
-import scala.concurrent.ExecutionContext.Implicits.global
-
-class FakePilot extends Actor {
-  override def receive = {
-    case _ =>
-      throw new Exception("This exception is expected.")
-  }
-}
-
 class PilotsSpec extends TestKit(ActorSystem("PilotsSpec",
   ConfigFactory.parseString(PilotsSpec.configStr)))
 with ImplicitSender
 with WordSpecLike
-with MustMatchers {
+with MustMatchers
+with BeforeAndAfterAll
+with PilotProvider {
   import PilotsSpec._
   import Plane._
   import CommonTestData._
@@ -35,7 +28,9 @@ with MustMatchers {
   // These paths are going to prove useful
   val pilotPath = s"/user/TestPilots/$pilotName"
   val copilotPath = s"/user/TestPilots/$copilotName"
-  implicit val askTimeout = Timeout(5.seconds)
+  implicit val askTimeout = Timeout(2.seconds)
+
+  override def afterAll() { system.terminate() }
 
   // Helper function to construct the hierarchy we need
   // and ensure that the children are good to go by the
@@ -46,14 +41,16 @@ with MustMatchers {
     val a = system.actorOf(Props(new IsolatedStopSupervisor
       with OneForOneStrategyFactory {
       def childStarter() {
-        context.actorOf(Props[FakePilot], pilotName)
-        context.actorOf(Props(new CoPilot(testActor, nilActor, nilActor)), copilotName)
+        val coPilot = context.actorOf(Props(new CoPilot(testActor, nilActor, nilActor)), copilotName)
+        context.actorOf(Props(newPilot(testActor, coPilot, nilActor, nilActor)), pilotName)
       }
     }), "TestPilots")
-    // Wait for the mailboxes to be up and running for the children
-    Await.result(a ? IsolatedLifeCycleSupervisor.WaitForStart, 5.seconds)
+
     // Tell the CoPilot that it's ready to go
     system.actorSelection(copilotPath) ! Pilots.ReadyToGo
+
+    // Wait for the mailboxes to be up and running for the children
+    Await.result(a ? IsolatedLifeCycleSupervisor.WaitForStart, 1.second)
 
     a
   }
@@ -62,28 +59,14 @@ with MustMatchers {
   "CoPilot" should {
     "take control when the Pilot dies" in {
       pilotsReadyToGo()
+
       // Kill the Pilot
-      for {
-        pilotActorRef <- system.actorSelection(pilotPath).resolveOne
-        _ = pilotActorRef ! PoisonPill
-        // Since the test class is the "Plane" we can
-        // expect to see this request
-        _ = {
-          within(6.seconds)(expectMsg(GiveMeControl))
+      system.actorSelection(pilotPath) ! PoisonPill
 
-          // The girl who sent it had better be Mary
-          for {
-            copilotActorRef <- system.actorSelection(copilotPath).resolveOne
-            _ <- {
-              lastSender must be (copilotActorRef)
+      expectMsg(GiveMeControl)
 
-              Future.successful({})
-            }
-          } {}
-
-          Future.successful({})
-        }
-      } {}
+      val lastSenderX = lastSender.path
+      system.actorSelection(lastSenderX) must be (system.actorSelection(copilotPath))
     }
   }
 
@@ -113,24 +96,22 @@ with MustMatchers {
     "send new zaphodCalcElevator and zaphodCalcAilerons to FlyingBehaviour" in {
       val p = makePilot()
 
-      for {
-        flyingBehaviourActorRef <- system.actorSelection(p.path + "/FlyingBehaviour").resolveOne()
-        _ <- {
-          val target = CourseTarget(1, 1.0f, 1000)
-          flyingBehaviourActorRef ! Fly(target)
-          flyingBehaviourActorRef ! HeadingUpdate(20)
-          flyingBehaviourActorRef ! AltitudeUpdate(20)
-          flyingBehaviourActorRef ! Controls(nilActor)
+      val flyingBehaviour = system.actorSelection(p.path + "/FlyingBehaviour")
+      val target = CourseTarget(1, 1.0f, 1000)
 
-          p ! FeelingLikeZaphod
-          expectMsgAllOf(
-            NewElevatorCalculator(zaphodCalcElevator),
-            NewBankCalculator(zaphodCalcAilerons)
-          )
+      flyingBehaviour ! Fly(target)
+      flyingBehaviour ! HeadingUpdate(20)
+      flyingBehaviour ! AltitudeUpdate(20)
+      flyingBehaviour ! Controls(nilActor)
 
-          Future.successful({})
-        }
-      } {}
+      p ! FeelingLikeZaphod
+
+      within(7.seconds) {
+        expectMsgAllOf(
+          NewElevatorCalculator(zaphodCalcElevator),
+          NewBankCalculator(zaphodCalcAilerons)
+        )
+      }
     }
   }
 
@@ -139,27 +120,23 @@ with MustMatchers {
       "FlyingBehaviour" in {
       val p = makePilot()
 
-      for {
-        flyingBehaviourActorRef <- system.actorSelection(p.path + "/FlyingBehaviour").resolveOne()
-        _ <- {
-          val target = CourseTarget(1, 1.0f, 1000)
-          flyingBehaviourActorRef ! Fly(target)
-          flyingBehaviourActorRef ! HeadingUpdate(20)
-          flyingBehaviourActorRef ! AltitudeUpdate(20)
-          flyingBehaviourActorRef ! Controls(nilActor)
+      val  flyingBehaviour = system.actorSelection(p.path + "/FlyingBehaviour")
+      val target = CourseTarget(1, 1.0f, 1000)
 
-          p ! FeelingTipsy
-          expectMsgAllClassOf(classOf[NewElevatorCalculator],
-            classOf[NewBankCalculator]) foreach {
-            case NewElevatorCalculator(f) =>
-              f must be(tipsyCalcElevator)
-            case NewBankCalculator(f) =>
-              f must be(tipsyCalcAilerons)
-          }
+      flyingBehaviour ! Fly(target)
+      flyingBehaviour ! HeadingUpdate(20)
+      flyingBehaviour ! AltitudeUpdate(20)
+      flyingBehaviour ! Controls(nilActor)
 
-          Future.successful({})
-        }
-      } {}
+      p !  FeelingTipsy
+
+      expectMsgAllClassOf(classOf[NewElevatorCalculator],
+        classOf[NewBankCalculator]) foreach {
+        case NewElevatorCalculator(f) =>
+          f must be(tipsyCalcElevator)
+        case NewBankCalculator(f) =>
+          f must be(tipsyCalcAilerons)
+      }
     }
   }
 }

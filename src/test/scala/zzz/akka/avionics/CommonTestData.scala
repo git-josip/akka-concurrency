@@ -6,6 +6,7 @@ import akka.actor.Actor
 object CommonTestData {
   class NilActor extends Actor {
     def receive = {
-      case _ => }
+      case _ =>
+    }
   }
 }

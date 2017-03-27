@@ -1,9 +1,9 @@
 package zzz.akka.avionics
 
-import akka.actor.{Props, ActorSystem}
-import akka.testkit.{TestActorRef, ImplicitSender, TestKit}
+import akka.actor.{ActorSystem, Props}
+import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
-import org.scalatest.{MustMatchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 
 object TestFlightAttendant {
   def apply() = new FlightAttendant with AttendantResponsiveness {
@@ -14,8 +14,11 @@ object TestFlightAttendant {
 class FlightAttendantSpec extends TestKit(ActorSystem("FlightAttendantSpec", ConfigFactory.parseString("akka.scheduler.tick-duration = 1ms")))
   with ImplicitSender
   with WordSpecLike
-  with MustMatchers {
+  with MustMatchers
+  with BeforeAndAfterAll {
   import FlightAttendant._
+
+  override def afterAll() { system.terminate() }
 
   "FlightAttendant" should {
     "get a drink when asked" in {

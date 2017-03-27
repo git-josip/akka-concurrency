@@ -17,7 +17,7 @@ class Plane extends Actor
   import IsolatedLifeCycleSupervisor._
   import context.dispatcher
 
-  implicit val timeout = Timeout(11.seconds)
+  implicit val timeout = Timeout(1.seconds)
 
   val config = context.system.settings.config
   val pilotName = config.getString("zzz.akka.avionics.flightcrew.pilotName")
@@ -34,7 +34,7 @@ class Plane extends Actor
       }
     }), "Controls")
 
-    Await.result(controls ? WaitForStart, 10.second)
+    Await.result(controls ? WaitForStart, 1.second)
   }
 
   // Helps us look up Actors within the "Controls" Supervisor

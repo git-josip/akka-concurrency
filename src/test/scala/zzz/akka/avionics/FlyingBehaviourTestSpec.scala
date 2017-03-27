@@ -3,7 +3,7 @@ package zzz.akka.avionics
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
 import CommonTestData._
-import org.scalatest.{MustMatchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, MustMatchers, WordSpecLike}
 import zzz.akka.avionics.Altimeter.AltitudeUpdate
 import zzz.akka.avionics.FlyingBehaviour._
 import zzz.akka.avionics.HeadingIndicator.HeadingUpdate
@@ -12,7 +12,8 @@ import zzz.akka.avionics.Plane.Controls
 class FlyingBehaviourTestSpec extends TestKit(ActorSystem("FlyingBehaviourTestSpec"))
   with ImplicitSender
   with WordSpecLike
-  with MustMatchers {
+  with MustMatchers
+  with BeforeAndAfterAll {
   def nilActor = system.actorOf(Props[NilActor])
 
   val target: CourseTarget = CourseTarget(30000, 10, 100)
@@ -22,6 +23,8 @@ class FlyingBehaviourTestSpec extends TestKit(ActorSystem("FlyingBehaviourTestSp
           altimeter: ActorRef = nilActor) = {
     TestFSMRef(new FlyingBehaviour(plane, heading, altimeter))
   }
+
+  override def afterAll() { system.terminate() }
 
   "FlyingBehaviour" should {
     "start in the Idle state and with Uninitialized data" in {
