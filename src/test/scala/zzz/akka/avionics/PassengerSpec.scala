@@ -26,7 +26,9 @@ class PassengerSpec extends TestKit(ActorSystem())
     system.actorOf(Props(new Passenger(testActor) with TestDrinkRequestProbability), s"Pat_Metheny-$seatNumber-B")
   }
 
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
 
   "Passengers" should {
     "fasten seatbelts when asked" in {

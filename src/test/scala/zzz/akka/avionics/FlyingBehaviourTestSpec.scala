@@ -24,7 +24,9 @@ class FlyingBehaviourTestSpec extends TestKit(ActorSystem("FlyingBehaviourTestSp
     TestFSMRef(new FlyingBehaviour(plane, heading, altimeter))
   }
 
-  override def afterAll() { system.terminate() }
+  override def afterAll() {
+    TestKit.shutdownActorSystem(system)
+  }
 
   "FlyingBehaviour" should {
     "start in the Idle state and with Uninitialized data" in {
