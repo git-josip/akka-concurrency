@@ -100,6 +100,11 @@ class Plane extends Actor
       actorForPilots(copilotName).resolveOne()
         .map(copilotActorRef => CoPilotReference(copilotActorRef))
         .pipeTo(currentSender)
+
+    case GetCurrentHeading =>
+      actorForControls("HeadingIndicator") forward GetCurrentHeading
+    case GetCurrentAltitude =>
+      actorForControls("Altimeter") forward GetCurrentAltitude
   }
 }
 
@@ -110,6 +115,9 @@ object Plane {
   case class CoPilotReference(copilot: ActorRef)
   case object RequestCoPilot
   case object LostControl
+
+  case object GetCurrentHeading
+  case object GetCurrentAltitude
 
   def apply() = new Plane with AltimeterProvider with PilotProvider with LeadFlightAttendantProvider with HeadingIndicatorProvider
 }

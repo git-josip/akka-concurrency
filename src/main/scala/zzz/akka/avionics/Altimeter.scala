@@ -1,7 +1,8 @@
 package zzz.akka.avionics
 
 // Imports to help us create Actors, plus logging
-import akka.actor.{Props, Actor, ActorSystem, ActorLogging}
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
+import zzz.akka.avionics.Plane.GetCurrentAltitude
 
 // The duration package object extends Ints with some timing functionality
 import scala.concurrent.duration._
@@ -45,6 +46,10 @@ class Altimeter extends Actor with ActorLogging { this: EventSource =>
       altitude = altitude + ((tick - lastTick) / 60000.0) * rateOfClimb
       lastTick = tick
       sendEvent(AltitudeUpdate(altitude))
+
+    case GetCurrentAltitude =>
+      log.info("Altimeter - altitude request")
+      sender ! CurrentAltitude(altitude)
   }
 
   // Kill our ticker when we stop
@@ -57,6 +62,7 @@ object Altimeter {
   // Sent to the Altimeter to inform it about a rate-of-climb changes
   case class RateChange(amount: Float)
   case class AltitudeUpdate(altitude: Double)
+  case class CurrentAltitude(altitude: Double)
 }
 
 trait AltimeterProvider {

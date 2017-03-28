@@ -1,6 +1,8 @@
 package zzz.akka.avionics
 
-import akka.actor.{ActorLogging, Actor}
+import akka.actor.{Actor, ActorLogging}
+import zzz.akka.avionics.Plane.GetCurrentHeading
+
 import scala.concurrent.duration._
 
 trait HeadingIndicator extends Actor
@@ -43,6 +45,9 @@ trait HeadingIndicator extends Actor
       val degs = rateOfBank * maxDegPerSec
       heading = (heading + (360 + (timeDelta * degs))) % 360
       lastTick = tick
+
+    case GetCurrentHeading =>
+      sender ! CurrentHeading(heading)
     // Send the HeadingUpdate event to our listeners sendEvent(HeadingUpdate(heading))
   }
 
@@ -65,6 +70,8 @@ object HeadingIndicator {
   // The event published by the HeadingIndicator to
   // listeners that want to know where we're headed
   case class HeadingUpdate(heading: Float)
+
+  case class CurrentHeading(heading: Float)
 
   def apply() = new HeadingIndicator with ProductionEventSource
 }
